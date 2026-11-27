@@ -4,16 +4,23 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:backend": "convex dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed": "convex run seed:load"
   },
   "dependencies": {
+    "@convex-dev/auth": "^2.1.0",
+    "convex": "^1.51.0",
+    "jose": "^6.2.18",
     "next": "16.4.6",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "recharts": "^3.11.1"
   },
   "devDependencies": {
+    "@convex-dev/eslint-plugin": "^6.0.0",
     "@tailwindcss/turbopack": "4.3.3",
     "@types/node": "^20",
     "@types/react": "^19",
