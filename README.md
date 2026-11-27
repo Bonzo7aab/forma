@@ -2,27 +2,26 @@
 
 Kwartalne testy sprawności. Tablica i zapisy są dostępne dopiero po zalogowaniu administratora.
 
+Aplikacja na komputerze i ta w chmurze korzystają z tego samego wdrożenia Convex w chmurze (`scrupulous-orca-710`). Baza nie działa lokalnie.
+
 ## Na swoim komputerze
 
 ```bash
 git clone https://github.com/Bonzo7aab/forma.git
 cd forma
 npm install
+cp .env.example .env.local
+npx convex login
 npx convex dev
+```
+
+W drugim terminalu:
+
+```bash
 npm run dev
 ```
 
-`npx convex dev` i `npm run dev` odpal w dwóch terminalach. Strona wstanie na adresie, który wypisze Next.js. Logowanie jest na `/logowanie`.
-
-Przy pierwszym `npx convex dev` zaloguj się (`npx convex login`) i wskaż istniejący projekt Forma, jeśli chcesz zostać przy dotychczasowym koncie administratora i wynikach. Te dane są w Convex, nie w tym repozytorium.
-
-Baza tylko na tym komputerze, bez chmury:
-
-```bash
-npx convex dev --configure new --project forma --dev-deployment local
-```
-
-To jest pusta baza. Formularz na stronie nie zakłada konta administratora.
+`npx convex dev` wysyła funkcje na istniejące wdrożenie w chmurze. Nie wybieraj lokalnej bazy. Konto administratora i wyniki są już na tym wdrożeniu. Logowanie jest na `/logowanie`.
 
 Przykładowe dane (12 osób, 5 ćwiczeń, 6 kwartałów) wczytasz w panelu, zakładka Konto, albo poleceniem `npm run seed`.
 
