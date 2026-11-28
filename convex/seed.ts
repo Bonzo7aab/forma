@@ -3,6 +3,7 @@ import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { internalMutation, mutation } from "./_generated/server";
 import { requireAdmin } from "./lib/guard";
+import { hashPassword } from "./lib/secret";
 
 const seedResult = v.object({
   seeded: v.boolean(),
@@ -91,7 +92,29 @@ function skipped(athleteIndex: number, exerciseIndex: number, quarterIndex: numb
   );
 }
 
+const samplePassword = "przyklad";
+
+async function ensureSamplePasswords(ctx: MutationCtx) {
+  const samples = await ctx.db
+    .query("athletes")
+    .withIndex("by_sample", (q) => q.eq("sample", true))
+    .take(100);
+  const names = [...new Set(samples.map((athlete) => athlete.group).filter((name) => name.length > 0))];
+  for (const name of names) {
+    const existing = await ctx.db
+      .query("groups")
+      .withIndex("by_name", (q) => q.eq("name", name))
+      .unique();
+    if (existing) continue;
+    await ctx.db.insert("groups", {
+      name,
+      passwordHash: await hashPassword(samplePassword),
+    });
+  }
+}
+
 export async function loadSamples(ctx: MutationCtx) {
+  await ensureSamplePasswords(ctx);
   const existingAthlete = await ctx.db.query("athletes").take(1);
   const existingSession = await ctx.db.query("sessions").take(1);
   if (existingAthlete.length > 0 || existingSession.length > 0) {
@@ -171,6 +194,7 @@ export async function loadSamples(ctx: MutationCtx) {
     }
   }
 
+  await ensureSamplePasswords(ctx);
   return { seeded: true, athletes: athleteIds.length, results };
 }
 
@@ -224,6 +248,25 @@ export const clearSamples = mutation({
     }
     for (const athlete of athletes) {
       await ctx.db.delete("athletes", athlete._id);
+    }
+    const remaining = await ctx.db.query("athletes").take(200);
+    const namesLeft = new Set(remaining.map((athlete) => athlete.group));
+    const touched = new Set(athletes.map((athlete) => athlete.group).filter((name) => name.length > 0));
+    for (const name of touched) {
+      if (namesLeft.has(name)) continue;
+      const group = await ctx.db
+        .query("groups")
+        .withIndex("by_name", (q) => q.eq("name", name))
+        .unique();
+      if (group === null) continue;
+      const access = await ctx.db
+        .query("groupSessions")
+        .withIndex("by_group", (q) => q.eq("groupId", group._id))
+        .take(100);
+      for (const session of access) {
+        await ctx.db.delete("groupSessions", session._id);
+      }
+      await ctx.db.delete("groups", group._id);
     }
     return { athletes: athletes.length, sessions: sessions.length };
   },

@@ -12,6 +12,7 @@
   --clay: #b8432f;
   --clay-soft: #f8ebe6;
   --gold: #8d6b2f;
+  --gold-bright: #e4c98a;
   --gold-soft: #f4ead6;
 }
 
@@ -27,6 +28,7 @@
   --color-clay: var(--clay);
   --color-clay-soft: var(--clay-soft);
   --color-gold: var(--gold);
+  --color-gold-bright: var(--gold-bright);
   --color-gold-soft: var(--gold-soft);
   --font-sans: var(--font-outfit), sans-serif;
   --font-serif: var(--font-fraunces), serif;
@@ -42,6 +44,47 @@ body {
 
 ::selection {
   background: #d7ebdf;
+}
+
+.group-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 240ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.group-panel[data-open="true"] {
+  grid-template-rows: 1fr;
+  transition-duration: 360ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.group-panel-body {
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 120ms ease,
+    transform 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.group-panel[data-open="true"] .group-panel-body {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 200ms ease,
+    transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: 160ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .group-panel,
+  .group-panel-body {
+    transition: none;
+    transform: none;
+  }
+
+  .group-panel[data-open="true"] .group-panel-body {
+    opacity: 1;
+  }
 }
 
 @media print {

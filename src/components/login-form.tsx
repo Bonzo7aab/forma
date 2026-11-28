@@ -4,7 +4,6 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSignInWithUsernamePassword, useSignUpWithUsernamePassword } from "@convex-dev/auth/methods/username-password/react";
-import { DEFAULT_MIN_PASSWORD_LENGTH } from "@convex-dev/auth/methods/username-password";
 import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { Logo } from "@/components/logo";
@@ -76,13 +75,13 @@ export function LoginForm() {
               disabled={pending || registrationOpen === undefined}
             />
           </Field>
-          <Field label="Hasło" hint={`Minimum ${DEFAULT_MIN_PASSWORD_LENGTH} znaków. Popularne hasła są odrzucane.`}>
+          <Field label="Hasło" hint="Minimum 4 znaki.">
             <TextField
               id="password"
               name="password"
               type="password"
               autoComplete={creating ? "new-password" : "current-password"}
-              minLength={DEFAULT_MIN_PASSWORD_LENGTH}
+              minLength={4}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               required

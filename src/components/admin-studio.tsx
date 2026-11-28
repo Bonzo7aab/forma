@@ -17,13 +17,12 @@ import {
   utcToDateInput,
 } from "@/lib/format";
 import type { ChangePasswordResult } from "@convex-dev/auth/methods/username-password/server";
-import { DEFAULT_MIN_PASSWORD_LENGTH } from "@convex-dev/auth/methods/username-password";
 
-type Tab = "wyniki" | "sklad" | "cwiczenia" | "konto";
+type Tab = "wyniki" | "sklad" | "grupy" | "cwiczenia" | "konto";
 
 export function AdminStudio() {
   const viewer = useQuery(api.currentUser.viewer);
-  const overview = useQuery(api.board.overview);
+  const overview = useQuery(api.board.overview, viewer ? {} : "skip");
   const [tab, setTab] = useState<Tab>("wyniki");
   const hasSamples = overview?.athletes.some((athlete) => athlete.sample) ?? false;
 
@@ -44,6 +43,7 @@ export function AdminStudio() {
               [
                 ["wyniki", "Wyniki"],
                 ["sklad", "Podopieczni"],
+                ["grupy", "Grupy"],
                 ["cwiczenia", "Ćwiczenia"],
                 ["konto", "Konto"],
               ] as const
@@ -66,10 +66,15 @@ export function AdminStudio() {
           <ResultsEditor overview={overview} />
         ) : tab === "sklad" ? (
           <RosterEditor />
+        ) : tab === "grupy" ? (
+          <GroupsEditor />
         ) : tab === "cwiczenia" ? (
           <ExerciseEditor />
         ) : (
-          <AccountPanel username={viewer?.username ?? ""} />
+          <AccountPanel
+            username={viewer?.username ?? ""}
+            canSeed={overview !== undefined && overview.athletes.length === 0 && overview.sessions.length === 0}
+          />
         )}
       </main>
     </div>
@@ -591,16 +596,83 @@ function ExerciseEditor() {
   );
 }
 
-function AccountPanel({ username }: { username: string }) {
-  const overview = useQuery(api.board.overview);
+function GroupsEditor() {
+  const groups = useQuery(api.groups.listManage);
+  const setPassword = useMutation(api.groups.setPassword);
+  const [pending, setPending] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <Panel>
+      <h2 className="font-serif text-2xl">Hasła grup</h2>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+        Każda grupa ma własne hasło. Po jego wpisaniu widać tylko osoby z tej grupy. Starego hasła nie da się odczytać.
+      </p>
+      {groups === undefined ? (
+        <div className="mt-4 h-40 animate-pulse rounded-2xl bg-paper" />
+      ) : groups.length === 0 ? (
+        <p className="mt-4 text-sm text-muted">Najpierw dodaj podopiecznego i wpisz mu grupę.</p>
+      ) : (
+        <ul className="mt-4 flex flex-col gap-3">
+          {groups.map((group) => (
+            <li key={group.name} className="rounded-2xl border border-line px-4 py-3">
+              <form
+                className="flex flex-col gap-3 sm:flex-row sm:items-end"
+                onSubmit={async (event) => {
+                  event.preventDefault();
+                  const form = new FormData(event.currentTarget);
+                  const password = String(form.get("password") ?? "");
+                  setPending(group.name);
+                  setStatus(null);
+                  setError(null);
+                  try {
+                    await setPassword({ name: group.name, password });
+                    event.currentTarget.reset();
+                    setStatus(`Hasło grupy ${group.name} zostało zapisane. Poprzednie wejścia do tej grupy wygasły.`);
+                  } catch (cause) {
+                    setError(errorText(cause));
+                  } finally {
+                    setPending(null);
+                  }
+                }}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">{group.name}</p>
+                  <p className="text-sm text-muted">{group.hasPassword ? "Hasło ustawione" : "Brak hasła"}</p>
+                </div>
+                <TextField
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={4}
+                  maxLength={80}
+                  placeholder="Nowe hasło"
+                  aria-label={`Hasło grupy ${group.name}`}
+                  required
+                  className="sm:max-w-64"
+                />
+                <Button type="submit" disabled={pending === group.name}>
+                  {pending === group.name ? "Zapisywanie…" : "Ustaw hasło"}
+                </Button>
+              </form>
+            </li>
+          ))}
+        </ul>
+      )}
+      {status ? <p className="mt-4 text-sm text-muted">{status}</p> : null}
+      {error ? <p className="mt-4 text-sm text-clay">{error}</p> : null}
+    </Panel>
+  );
+}
+
+function AccountPanel({ username, canSeed }: { username: string; canSeed: boolean }) {
   const loadSamples = useMutation(api.seed.loadForAdmin);
   const changePassword = useMutation(api.auth.changePassword);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const empty = overview !== undefined && overview.athletes.length === 0 && overview.sessions.length === 0;
-
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <Panel>
@@ -643,13 +715,13 @@ function AccountPanel({ username }: { username: string }) {
               required
             />
           </Field>
-          <Field label="Nowe hasło" hint={`Minimum ${DEFAULT_MIN_PASSWORD_LENGTH} znaków.`}>
+          <Field label="Nowe hasło" hint="Minimum 4 znaki.">
             <TextField
               id="new-password"
               name="new-password"
               type="password"
               autoComplete="new-password"
-              minLength={DEFAULT_MIN_PASSWORD_LENGTH}
+              minLength={4}
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
               required
@@ -667,7 +739,7 @@ function AccountPanel({ username }: { username: string }) {
         <Button
           className="mt-5"
           variant="secondary"
-          disabled={!empty || pending}
+          disabled={!canSeed || pending}
           onClick={async () => {
             setPending(true);
             setStatus(null);

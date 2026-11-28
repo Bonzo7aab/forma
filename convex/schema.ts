@@ -11,6 +11,7 @@ const quarter = v.union(
 export default defineSchema({
   users: defineTable({
     role: v.literal("admin"),
+    passwordHash: v.optional(v.string()),
   }),
   athletes: defineTable({
     name: v.string(),
@@ -49,4 +50,15 @@ export default defineSchema({
     .index("by_exercise", ["exerciseId"])
     .index("by_session_and_athlete", ["sessionId", "athleteId"])
     .index("by_athlete_and_exercise", ["athleteId", "exerciseId"]),
+  groups: defineTable({
+    name: v.string(),
+    passwordHash: v.string(),
+  }).index("by_name", ["name"]),
+  groupSessions: defineTable({
+    groupId: v.id("groups"),
+    tokenHash: v.string(),
+    expiresAt: v.number(),
+  })
+    .index("by_tokenHash", ["tokenHash"])
+    .index("by_group", ["groupId"]),
 });

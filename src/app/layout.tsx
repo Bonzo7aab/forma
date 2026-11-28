@@ -16,10 +16,10 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: {
-    default: "Forma — testy sprawności",
+    default: "Forma — cztery kwartały",
     template: "%s · Forma",
   },
-  description: "Kwartalne testy sprawności i postęp podopiecznych na przestrzeni kolejnych pomiarów.",
+  description: "Kwartalne testy sprawności. Postęp grupy, pomiar po pomiarze.",
 };
 
 export const viewport: Viewport = {
